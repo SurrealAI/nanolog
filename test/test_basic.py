@@ -1,3 +1,4 @@
+import pytest
 import logging
 import inspect
 import nanolog as nl
@@ -16,15 +17,35 @@ def test_level_name():
     assert nl.get_level_number('LEVEL17') == 17
 
 
-def test_methods():
-    logger = nl.Logger.get_logger(
+@pytest.fixture
+def logger():
+    return nl.Logger.get_logger(
         'main',
         stream='out',
-        level='warning',
-        show_level=True,
-        format='{name} {asctime} {filename:>16s} {funcName}() {lineno} {levelname} ',
+        level='debug5',
+        show_level=False,
+        format='{name} {asctime} {filename:>16s} {funcName}() {lineno} {levelname}\n',
         time_format='dhm',
     )
+
+
+def test_doc(logger):
+    print(inspect.getdoc(logger.debug5))
+    print(inspect.getdoc(logger.debugfmt5))
+    print(inspect.getdoc(logger.infobanner))
+    print(inspect.getdoc(logger.errorbanner2))
+    print(inspect.getdoc(logger.criticalbanner))
+
+
+def test_banner(logger):
+    logger.infobanner3('my', 'hello', 'world', symbol='!',
+                       banner_len=16, banner_lines=3)
+    logger.infobanner3(banner_len=16, banner_lines=2)
+    logger.criticalbanner('my', 'critical', 'case', symbol='<*_*>',
+                           banner_len=16, banner_lines=6)
+
+
+def test_methods(logger):
 
     print([_method for _method in dir(logger) if not _method.startswith('__')])
 
@@ -35,24 +56,13 @@ def test_methods():
         1/0
     except Exception as e:
         logger.exception('myexc', 'yo', exc=e)
-    logger.section('yoyoyoo', sep='%')
+    logger.banner(logger.WARNING3, 'yoyoyoo', symbol='%')
     logger.criticalfmt('Client format {:0>5d} - {:?<9}', 21, 'asdiojfoigj')
     logger.debugfmt5('debugger {:0>5d} - {:?<9}', 42, 'asodjfaisdfisaj')
 
-    print(inspect.getdoc(logger.info7))
-    print(inspect.getdoc(logger.debug3))
 
-
-def test_formatting():
-    log = nl.Logger.get_logger(
-        'main',
-        stream='out',
-        level='info2',
-        show_level=True,
-        format='{name} {asctime} {filename:>16s} {funcName}() {lineno} {levelname} ',
-        time_format='dhm',
-    )
-
+def test_formatting(logger):
+    log=logger
     def f():
         log.infofmt7('yo {:.3f} info7', 1/17)
         log.criticalfmt('yo crit {:.2e} {}', 3**0.5, {'x':3})
@@ -66,5 +76,5 @@ def test_formatting():
     f()
     g()
     f()
-    log.infosection('Yo', sep='!', repeat=50)
-    # log.infosection3('Yo', sep='!', repeat=50)
+    log.infobanner('Yo', symbol='!', banner_len=50)
+    # log.infobanner3('Yo', sep='!', repeat=50)

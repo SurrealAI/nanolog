@@ -1,6 +1,7 @@
 import os
 import sys
 import io
+import re
 import traceback
 import inspect
 import logging as _logging
@@ -12,6 +13,8 @@ def _get_level_names():
         names[_logging.DEBUG + i] = 'DEBUG'+str(i)
         names[_logging.INFO + i] = 'INFO'+str(i)
         names[_logging.WARNING + i] = 'WARNING'+str(i)
+        names[_logging.ERROR + i] = 'ERROR'+str(i)
+        names[_logging.CRITICAL + i] = 'CRITICAL'+str(i)
     # add to standard lib
     for level, name in names.items():
         setattr(_logging, name, level)
@@ -106,11 +109,11 @@ def _expand_arg(arg):
         return [arg]
 
 
-def _process_msg(*args, **kwargs):
+def _process_msg(*msg, **kwargs):
     # if 'sep' is provided, we will use the custom separator instead
     sep = kwargs.pop('sep', ' ')
     # e.g. "{}, {}, {}" if sep = ", "
-    msg = sep.join([u'{}'] * len(args)).format(*args)
+    msg = sep.join([u'{}'] * len(msg)).format(*msg)
     return msg, kwargs
 
 
@@ -125,65 +128,88 @@ def _process_msg_fmt(msg, *args, **kwargs):
     return msg, kwargs
 
 
+def _parse_level_name(level_name):
+    "_MethodGenerator helper"
+    level_name = level_name.lower()
+    m = re.match('^([a-z]+)([0-9]*)$', level_name)
+    assert m, 'INTERNAL ERROR'
+    # 'info', '5' or ''
+    return m.group(1), m.group(2)
+
+
 class _MethodGenerator(type):
-    def __new__(cls, cls_name, bases, attrs):
-        # generate standard methods like logger.warning(...)
-        def _std_method(name, is_fmt):
-            if is_fmt:
-                _process = _process_msg_fmt
-            else:
-                _process = _process_msg
+    def __new__(cls, cls_name, bases, method_dict):
 
-            def _method(self, *args, **kwargs):
-                # e.g. logging.DEBUG
-                level = getattr(_logging, name.upper())
-                if self.logger.isEnabledFor(level):
-                    msg, kwargs = _process(*args, **kwargs)
-                    self._log(level, msg, **kwargs)
+        def _generate(level_number):
+            # 'info', '5' or ''
+            level_name = get_level_name(level_number)
+            lname, lnum = _parse_level_name(level_name)
 
-            _method.__doc__ = inspect.getdoc(getattr(_logging.Logger, name))
-            return _method
+            def _log(self, *msg, **kwargs):
+                """
+                logging at severity {} (level {})
 
-        def _section_method(name):
-            def _method(self, *msg, sep='=', repeat=20, **kwargs):
-                # e.g. logging.DEBUG
-                level = getattr(_logging, name.upper())
-                self.section(*msg, level=level, sep=sep, repeat=repeat, **kwargs)
-            _method.__doc__ = inspect.getdoc(getattr(_logging.Logger, name))
-            return _method
+                Args:
+                    *msg: as you would use print()
+                    **kwargs:
+                      - sep: separator symbol between *msg, the same as print()
+                      - exc_info, stack_info, extra: logging builtin keywords
+                """
+                return self.log(level_number, *msg, **kwargs)
+            _log.__doc__ = _log.__doc__.format(level_name, level_number)
 
-        for name in ['debug', 'info', 'warning', 'error', 'critical']:
-            attrs[name] = _std_method(name, False)
-            attrs[name+'fmt'] = _std_method(name, True)
-            attrs[name+'section'] = _section_method(name)
+            def _logfmt(self, msg, *args, **kwargs):
+                """
+                logging with formatting string at severity {} (level {})
 
-        # generate logger.info3(...) and logger.debug8(...)
-        def _custom_level_method(level, is_fmt):
-            def _method(self, msg, *args, **kwargs):
-                if is_fmt:
-                    return self.logfmt(level, msg, *args, **kwargs)
-                else:
-                    return self.log(level, msg, *args, **kwargs)
-            _method.__doc__ = "custom logging level "+str(level)
-            return _method
+                Args:
+                    msg: "{{}}"-style format string
+                    *args: positional args for the format string
+                    **kwargs:
+                      keyword args for the format string, except for
+                      "exc_info", "stack_info", "extra" logging keywords
+                """
+                return self.logfmt(level_number, msg, *args, **kwargs)
+            _logfmt.__doc__ = _logfmt.__doc__.format(level_name, level_number)
 
-        for level in range(1, 10):
-            attrs['info{}'.format(level)] = \
-                _custom_level_method(_logging.INFO + level, False)
-            attrs['infofmt{}'.format(level)] = \
-                _custom_level_method(_logging.INFO + level, True)
-            attrs['debug{}'.format(level)] = \
-                _custom_level_method(_logging.DEBUG + level, False)
-            attrs['debugfmt{}'.format(level)] = \
-                _custom_level_method(_logging.DEBUG + level, True)
-            attrs['warning{}'.format(level)] = \
-                _custom_level_method(_logging.WARNING + level, False)
-            attrs['warningfmt{}'.format(level)] = \
-                _custom_level_method(_logging.WARNING + level, True)
+            def _banner(self, *msg,
+                        sep=' ', symbol='=', banner_len=20, banner_lines=1):
+                """
+                Display a banner line or block with your message in the middle
+                logging at severity {} (level {})
+
+                Args:
+                  sep: separator between *msg, same as in print()
+                  symbol: banner symbol
+                  banner_len: length of the banner symbols (excluding message itself)
+                  banner_lines: number of the banner lines, ideally an odd number
+
+                Example:
+                  # long unbroken line of '!'
+                  logger.banner(INFO, symbol='!', bannerlen=80)
+                  # !!!!!!!!! my hello world !!!!!!!!!
+                  logger.banner(DEBUG2, 'my', 'hello', 'world', symbol='!', banner_len=10)
+                """
+                return self.banner(
+                    level_number, *msg,
+                    sep=sep,
+                    symbol=symbol,
+                    banner_len=banner_len,
+                    banner_lines=banner_lines
+                )
+            _banner.__doc__ = _banner.__doc__.format(level_name, level_number)
+
+            method_dict[lname+lnum] = _log
+            method_dict[lname+'fmt'+lnum] = _logfmt
+            method_dict[lname+'banner'+lnum] = _banner
+
+        # generate all methods from DEBUG, DEBUG2, DEBUG3, ..., CRITICAL9
+        for level_number in range(10, 60):
+            _generate(level_number)
 
         for level, name in _LEVEL_NAMES.items():
-            attrs[name] = level
-        return super().__new__(cls, cls_name, bases, attrs)
+            method_dict[name] = level
+        return super().__new__(cls, cls_name, bases, method_dict)
         
 
 class Logger(metaclass=_MethodGenerator):
@@ -264,17 +290,21 @@ class Logger(metaclass=_MethodGenerator):
                 msg += self.exception2str(exc)
             self.logger.error(msg, **kwargs)
     
-    def log(self, level, msg, *args, **kwargs):
+    def log(self, level, *msg, **kwargs):
         """
         Log with user-defined level, e.g. INFO3, DEBUG5, WARNING7
 
         Args:
-            level: level name or number
+            level: logging level name or number
+            *msg: as you would use print()
+            **kwargs:
+              - sep: separator symbol between *msg, the same as print()
+              - exc_info, stack_info, extra: logging builtin keywords
         """
         if isinstance(level, str):
             level = get_level_number(level)
         if self.logger.isEnabledFor(level):
-            msg, kwargs = _process_msg(msg, *args, **kwargs)
+            msg, kwargs = _process_msg(*msg, **kwargs)
             # self.logger.log(level, msg, **kwargs)
             self._log(level, msg, **kwargs)
 
@@ -283,7 +313,12 @@ class Logger(metaclass=_MethodGenerator):
         Log with user-defined level, e.g. INFO3, DEBUG5, WARNING7
 
         Args:
-            level: level name or number
+            level: logging level name or number
+            msg: "{}"-style format string
+            *args: positional args for the format string
+            **kwargs:
+              keyword args for the format string, except for
+              "exc_info", "stack_info", "extra" logging keywords
         """
         if isinstance(level, str):
             level = get_level_number(level)
@@ -292,9 +327,53 @@ class Logger(metaclass=_MethodGenerator):
             # self.logger.log(level, msg, **kwargs)
             self._log(level, msg, **kwargs)
 
-    def section(self, *msg, level=_logging.INFO, sep='=', repeat=20, **kwargs):
+    def _get_banner(self, msg, symbol='=', banner_len=20, banner_lines=1):
+        "helper for banner() and bannerfmt()"
+        # repeat `symbol`, cut in middle if necessary
+        half_len = banner_len // 2
+        half_banner = (symbol * (half_len // len(symbol))
+                       + symbol[:half_len % len(symbol)])
+        assert len(half_banner) == half_len, 'INTERNAL ERROR'
+        central_line = u'{half_banner}{space}{msg}{space}{half_banner}'.format(
+            half_banner=half_banner,
+            msg=msg,
+            space=' ' if msg else ''
+        )
+        full_len = len(central_line)  # including message
+        banner_lines -= 1
+        surround_banner = (symbol * (full_len // len(symbol))
+                           + symbol[:full_len % len(symbol)])
+        before_banner = [surround_banner] * (banner_lines // 2)
+        after_banner = [surround_banner] * (banner_lines - banner_lines // 2)
+        full_banner = before_banner + [central_line] + after_banner
+        return '\n'.join(full_banner)
+
+    def banner(self, level, *msg,
+               sep=' ', symbol='=', banner_len=20, banner_lines=1):
         """
-        Display a section segment line
+        Display a banner line or block with your message in the middle
+
+        Args:
+          level: logging level name or number
+          sep: separator between *msg, same as in print()
+          symbol: banner symbol
+          banner_len: length of the banner symbols (excluding message itself)
+          banner_lines: number of the banner lines, ideally an odd number
+
+        Example:
+          # long unbroken line of '!'
+          logger.banner(INFO, symbol='!', bannerlen=80)
+          # !!!!!!!!! my hello world !!!!!!!!!
+          logger.banner(DEBUG2, 'my', 'hello', 'world', symbol='!', banner_len=10)
+        """
+        if self.logger.isEnabledFor(level):
+            msg, _ = _process_msg(*msg, sep=sep)
+            msg = self._get_banner(msg, symbol, banner_len, banner_lines)
+            self._log(level, msg)
+
+    def bannerfmt(self, level, *msg, symbol='=', bannerlen=20, **kwargs):
+        """
+        Display a banner line or block
 
         Args:
           msg: to be displayed in the middle of the sep line
@@ -302,23 +381,15 @@ class Logger(metaclass=_MethodGenerator):
           level: defaults to INFO
           sep: symbol to be repeated for a long segment line
           repeat: 'sep' * repeat, the length of segment string
-        
+
         Example:
-          logger.section(sep='!', repeat=80) # long unbroken line of '!'
-          logger.section('My message about {} and {x}', 100, x=200, level=_logging.DEBUG)
+          logger.banner(symbol='!', bannerlen=80) # long unbroken line of '!'
+          logger.banner('about {} and {x}', 100, x=200, level=_logging.DEBUG)
         """
+        raise NotImplementedError
         if self.logger.isEnabledFor(level):
-            if len(msg) == 0: # no vararg
-                msg = ''
-                args = tuple()
-            else:
-                msg, *args = msg
-            msg, _ = _process_msg(msg, *args, **kwargs)
-            msg = u'{sep}{space}{msg}{space}{sep}'.format(
-                sep=sep*(repeat//2),
-                msg=msg,
-                space=' ' if msg else ''
-            )
+            msg, _ = _process_msg(*msg, sep=sep)
+            msg = self._get_banner(msg, symbol, banner_len, banner_lines)
             self._log(level, msg)
 
     def remove_all_handlers(self):
