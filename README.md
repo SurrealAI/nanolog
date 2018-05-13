@@ -6,12 +6,19 @@ Life is too short. Use `nanolog` to make logging and printing simpler!
 
 The library also ships with many printing utilities. Python 3 only.
 
-Installation:
+## Installation
+
+From stable package on PyPI
 
 ```bash
 pip install nanolog
 ```
 
+From bleeding edge master branch
+
+```bash
+pip install git+git://github.com/SurrealAI/nanolog.git
+```
 
 # nanolog.Logger
 
