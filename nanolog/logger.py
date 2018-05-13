@@ -4,6 +4,7 @@ import io
 import re
 import traceback
 import inspect
+from .printing import get_time_formatter, banner, bannerfmt
 import logging as _logging
 
 
@@ -352,27 +353,6 @@ class Logger(metaclass=_MethodGenerator):
             # self.logger.log(level, msg, **kwargs)
             self._log(level, msg, **kwargs)
 
-    def _get_banner(self, msg, symbol='=', banner_len=20, banner_lines=1):
-        "helper for banner() and bannerfmt()"
-        # repeat `symbol`, cut in middle if necessary
-        half_len = banner_len // 2
-        half_banner = (symbol * (half_len // len(symbol))
-                       + symbol[:half_len % len(symbol)])
-        assert len(half_banner) == half_len, 'INTERNAL ERROR'
-        central_line = u'{half_banner}{space}{msg}{space}{half_banner}'.format(
-            half_banner=half_banner,
-            msg=msg,
-            space=' ' if msg else ''
-        )
-        full_len = len(central_line)  # including message
-        banner_lines -= 1
-        surround_banner = (symbol * (full_len // len(symbol))
-                           + symbol[:full_len % len(symbol)])
-        before_banner = [surround_banner] * (banner_lines // 2)
-        after_banner = [surround_banner] * (banner_lines - banner_lines // 2)
-        full_banner = before_banner + [central_line] + after_banner
-        return '\n'.join(full_banner)
-
     def banner(self, level, *msg,
                sep=' ', symbol='=', banner_len=20, banner_lines=1):
         """
@@ -392,8 +372,10 @@ class Logger(metaclass=_MethodGenerator):
           logger.banner(DEBUG2, 'my', 'hello', 'world', symbol='!', banner_len=10)
         """
         if self.is_enabled_for(level):
-            msg, _ = self._process_msg(*msg, sep=sep)
-            msg = self._get_banner(msg, symbol, banner_len, banner_lines)
+            msg = banner(
+                *msg, sep=sep, symbol=symbol,
+                banner_len=banner_len, banner_lines=banner_lines
+            )
             self._log(level, msg)
 
     def bannerfmt(self, level, msg, *args,
@@ -415,7 +397,10 @@ class Logger(metaclass=_MethodGenerator):
         """
         if self.is_enabled_for(level):
             msg, kwargs = self._process_msg_fmt(msg, *args, **kwargs)
-            msg = self._get_banner(msg, symbol, banner_len, banner_lines)
+            msg = banner(
+                msg, symbol=symbol,
+                banner_len=banner_len, banner_lines=banner_lines
+            )
             self._log(level, msg, **kwargs)
 
     def remove_all_handlers(self):
@@ -540,7 +525,7 @@ class Logger(metaclass=_MethodGenerator):
             fmt = format
         return _logging.Formatter(
             fmt=fmt + levelname + '{message}',
-            datefmt=self.get_datefmt(time_format),
+            datefmt=get_time_formatter(time_format),
             style='{'
         )
     
@@ -593,29 +578,17 @@ class Logger(metaclass=_MethodGenerator):
             self.logger.addHandler(handler)
         return self
     
-    def get_datefmt(self, time_format):
-        """
-        Alias for common date formats
-        """
-        return {'yd': '%m-%d-%y',
-                'ydhm': '%m-%d-%y %H:%M',
-                'ydhms': '%m-%d-%y %H:%M:%S',
-                'dhm': '%m-%d %H:%M',
-                'dhms':'%m-%d %H:%M:%S', 
-                'hms': '%H:%M:%S', 
-                'hm': '%H:%M'}.get(time_format, time_format)
-
-    def set_formatter(self, formatter):
+    def set_formatter(self, formatter, time_formatter=None):
         """
         Sets a custom formatter for *all* handlers.
         https://docs.python.org/3/library/logging.html#formatter-objects
 
         Args:
-          formatter: can be either of the following:
-          - instance of logging.Formatter
-          - fmt string, note that the style is `{}`
-          - tuple of fmt strings (fmt, datefmt), note that the style is `{}`
-        
+          formatter: format string (style is `{}`) or instance of logging.Formatter
+          time_formatter: time format string
+            will be no-op if `formatter` is instance of logging.Formatter
+            please see `nanolog.printing.get_time_formatter for aliases
+
         References:
         - for fmt string:
             https://docs.python.org/3/library/logging.html#logrecord-attributes
@@ -623,12 +596,11 @@ class Logger(metaclass=_MethodGenerator):
             https://docs.python.org/3/library/time.html#time.strftime
         """
         if isinstance(formatter, str):
-            formatter = _logging.Formatter(formatter, datefmt=None, style='{')
-        elif isinstance(formatter, (list, tuple)):
-            assert len(formatter) == 2, 'formatter=(fmt, datefmt) strings'
-            fmt, datefmt = formatter
-            datefmt = self.get_datefmt(datefmt)
-            formatter = _logging.Formatter(fmt, datefmt, style='{')
+            if time_formatter:
+                datefmt = get_time_formatter(time_formatter)
+            else:
+                datefmt = None
+            formatter = _logging.Formatter(formatter, datefmt=datefmt, style='{')
         elif not isinstance(formatter, _logging.Formatter):
             raise TypeError('formatter must be either an instance of '
                     'logging.Formatter or a tuple of (fmt, datefmt) strings')

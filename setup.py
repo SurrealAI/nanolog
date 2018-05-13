@@ -13,7 +13,7 @@ setup(
     author='Jim Fan',
     url='http://github.com/SurrealAI/nanolog',
     description='python logging on steroids, lightweight and convenient',
-    # long_description=read('README.rst'),
+    long_description=read('README.rst'),
     keywords=['logging',
               'utility'],
     license='GPLv3',
@@ -27,6 +27,10 @@ setup(
         "Environment :: Console",
         "Programming Language :: Python :: 3"
     ],
+    install_requires=[
+        "prettyprinter",
+    ],
+    python_requires='>=3.0',
     include_package_data=True,
     zip_safe=False
 )
