@@ -19,7 +19,7 @@ pip install nanolog
 ```python
 import nanolog as nl
 
-logger = nl.Logger.get_logger(
+logger = nl.Logger.create_logger(
     'main',
     stream='out',
     level='debug',

@@ -19,7 +19,7 @@ def test_level_name():
 
 @pytest.fixture
 def logger():
-    return nl.Logger.get_logger(
+    return nl.Logger.create_logger(
         'main',
         stream='out',
         level='debug5',

@@ -253,10 +253,24 @@ class Logger(metaclass=_MethodGenerator):
                     'levelname', 'levelno', 'asctime', 'message']
     
     def __init__(self, logger):
+        """
+        Wrap an existing logging.Logger instance or name
+
+        Args:
+          logger: if string, treat as an existing logger name
+        """
+        if isinstance(logger, str):
+            logger = _logging.getLogger(logger)
+        elif isinstance(logger, self.__class__):
+            logger = logger.unwrap()
+        assert isinstance(logger, _logging.Logger)
         self.logger = logger
-        
+
+    def unwrap(self):
+        return self.logger
+
     def __getattr__(self, attr):
-        "Access wrapped logger methods transparently"
+        "Delegate unknown attributes to the underlying logger"
         if attr in dir(self):
             return object.__getattribute__(self, attr)
         else:
@@ -470,16 +484,21 @@ class Logger(metaclass=_MethodGenerator):
         return self
     
     @classmethod
-    def get_logger(cls, name,
-                   level=None,
-                   file_name=None,
-                   file_mode='a',
-                   format=None,
-                   time_format=None,
-                   show_level=False,
-                   stream=None,
-                   reset_handlers=False):
+    def create_logger(cls, name,
+                      level=None,
+                      file_name=None,
+                      file_mode='a',
+                      format=None,
+                      time_format=None,
+                      show_level=False,
+                      stream=None,
+                      reset_handlers=False):
         """
+        Main factory method to create a new logger or re-configure an existing
+        logger.
+        If you just want to wrap an existing Logger without re-configuring,
+        please use the normal constructor: `nanolog.Logger(existing_logger)`
+
         Returns:
           a logger with the same config args as `.configure(...)`
           - if the logger already exists, retain its previous level
@@ -504,16 +523,6 @@ class Logger(metaclass=_MethodGenerator):
             reset_handlers=reset_handlers
         )
     
-    @classmethod
-    def wrap_logger(cls, logger):
-        """
-        Args:
-          logger: if string, logging.getLogger(). Else wrap and return.
-        """
-        if isinstance(logger, str):
-            logger = _logging.getLogger(logger)
-        return cls(logger)
-
     def _get_formatter(self, format, time_format, show_level):
         levelname = '{levelname}> ' if show_level else ''
         if format is None:
