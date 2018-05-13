@@ -29,6 +29,12 @@ def logger():
     )
 
 
+def test_constants():
+    from nanolog.logger import _print_constants
+    if 0:
+        _print_constants()  # generate constants.py
+
+
 def test_doc(logger):
     print(inspect.getdoc(logger.debug5))
     print(inspect.getdoc(logger.debugfmt5))

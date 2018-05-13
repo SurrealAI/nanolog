@@ -8,30 +8,27 @@ from .printing import get_time_formatter, banner, bannerfmt
 import logging as _logging
 
 
-def _get_level_names():
-    names = {}
+def _get_level_mapping():
+    names = {
+        _logging.DEBUG: 'DEBUG',
+        _logging.INFO: 'INFO',
+        _logging.WARNING: 'WARNING',
+        _logging.ERROR: 'ERROR',
+        _logging.CRITICAL: 'CRITICAL',
+    }
     for i in range(1, 10):
         names[_logging.DEBUG + i] = 'DEBUG'+str(i)
         names[_logging.INFO + i] = 'INFO'+str(i)
         names[_logging.WARNING + i] = 'WARNING'+str(i)
         names[_logging.ERROR + i] = 'ERROR'+str(i)
         names[_logging.CRITICAL + i] = 'CRITICAL'+str(i)
-    # add to standard lib
     for level, name in names.items():
+        # add to standard lib
         setattr(_logging, name, level)
     return names
 
 
-_LEVEL_NAMES = _get_level_names()
-
-
-_LEVEL_NAMES.update({
-    _logging.CRITICAL: 'CRITICAL',
-    _logging.ERROR: 'ERROR',
-    _logging.WARNING: 'WARNING',
-    _logging.INFO: 'INFO',
-    _logging.DEBUG: 'DEBUG',
-})
+_LEVEL_MAPPING = _get_level_mapping()
 
 
 def get_level_name(level_number):
@@ -45,7 +42,7 @@ def get_level_name(level_number):
     if isinstance(level_number, str):
         return level_number
     assert isinstance(level_number, int)
-    return _LEVEL_NAMES.get(level_number, 'LEVEL{}'.format(level_number))
+    return _LEVEL_MAPPING.get(level_number, 'LEVEL{}'.format(level_number))
 
 
 def get_level_number(level_name):
@@ -214,7 +211,7 @@ class _MethodGenerator(type):
         for level_number in range(10, 60):
             _generate(level_number)
 
-        for level, name in _LEVEL_NAMES.items():
+        for level, name in _LEVEL_MAPPING.items():
             method_dict[name] = level
         return super().__new__(cls, cls_name, bases, method_dict)
         
