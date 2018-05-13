@@ -157,7 +157,7 @@ def _banner(msg, symbol, banner_len, banner_lines):
 
 def banner(*msg, sep=' ', symbol='=', banner_len=20, banner_lines=1):
     """
-    Display a banner line or block with your message in the middle
+    A banner line or block with your message in the middle
 
     Args:
       sep: separator between *msg, same as in print()
@@ -175,10 +175,17 @@ def banner(*msg, sep=' ', symbol='=', banner_len=20, banner_lines=1):
     return _banner(msg, symbol, banner_len, banner_lines)
 
 
+def pbanner(*msg, sep=' ', symbol='=', banner_len=20, banner_lines=1,
+            end='\n', file=sys.stdout, flush=False):
+    print(banner(*msg, sep=sep,
+        symbol=symbol, banner_len=banner_len, banner_lines=banner_lines
+    ), end=end, file=file, flush=flush)
+
+
 def bannerfmt(msg, *fmt_args, symbol='=', banner_len=20, banner_lines=1,
               **fmt_kwargs):
     """
-    Display a banner line or block with your message in the middle.
+    A banner line or block with your message in the middle.
     Message is formatted in {}-style with *args and **kwargs
     Other banner settings are the same as banner() method
 
@@ -193,6 +200,12 @@ def bannerfmt(msg, *fmt_args, symbol='=', banner_len=20, banner_lines=1,
     msg = msg.format(*fmt_args, **fmt_kwargs)
     return _banner(msg, symbol, banner_len, banner_lines)
 
+
+def pbannerfmt(msg, *fmt_args, symbol='=', banner_len=20, banner_lines=1,
+               end='\n', file=sys.stdout, flush=False, **fmt_kwargs):
+    print(bannerfmt(msg, *fmt_args,
+        symbol=symbol, banner_len=banner_len, banner_lines=banner_lines, **fmt_kwargs
+    ), end=end, file=file, flush=flush)
 
 # ---------------- time formatting -----------------
 def get_time_formatter(formatter):

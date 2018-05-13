@@ -1,3 +1,4 @@
+import sys
 import nanolog as nl
 import pytest
 
@@ -21,3 +22,16 @@ def test_prettyprint(backend):
     nl.pprintfmt('{0}<->{var:.3f}<=>{1}<->{0}',
                  l1, l2, var=1/7.,
                  end='\n--\n', width=30, compact=True)
+
+
+def test_pbanner():
+    nl.pbanner('my', 3, 'world', symbol='!', banner_len=16, banner_lines=3)
+    nl.pbanner(banner_len=16, banner_lines=2)
+    nl.pbanner('my', 'critical', 'case', symbol='<*_*>',
+               banner_len=16, banner_lines=6, file=sys.stderr)
+    nl.pbannerfmt('{} {:0>5d} {var}',
+                  'hello', 333, var=777,
+                  symbol='!', banner_len=16, banner_lines=3)
+    nl.pbannerfmt('{3}&{0}&{2}&{1}',
+                  'a', 'b', 'c', 'd',
+                  symbol='%#@.@', banner_len=16, banner_lines=6, file=sys.stderr)
