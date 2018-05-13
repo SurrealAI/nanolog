@@ -436,11 +436,10 @@ class Logger(metaclass=_MethodGenerator):
           file_name: None to print to console only
           file_mode: 'w' to override a file or 'a' to append
           format: `{}` style logging format string, right after level name
-          time_format:
-            - `dhms`: %m/%d %H:%M:%S
-            - `dhm`: %m/%d %H:%M
-            - `hms`: %H:%M:%S
-            - `hm`: %H:%M
+          time_format examples:
+            - "MDY HMS" => "12-25-18 16:38:05"
+            - "HM@MD" => "16:38@12-25"
+            - "my clock: YMD MS" => "my clock: 18-12-25 38:05"
             - if contains '%', will be interpreted as a time format string
             - None
           show_level: if True, display `INFO> ` before the message

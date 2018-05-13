@@ -207,6 +207,7 @@ def pbannerfmt(msg, *fmt_args, symbol='=', banner_len=20, banner_lines=1,
         symbol=symbol, banner_len=banner_len, banner_lines=banner_lines, **fmt_kwargs
     ), end=end, file=file, flush=flush)
 
+
 # ---------------- time formatting -----------------
 def get_time_formatter(formatter):
     """
