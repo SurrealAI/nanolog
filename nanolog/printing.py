@@ -71,6 +71,20 @@ def printerr(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
+def printfmt(msg, *fmt_args,
+             end='\n', file=sys.stdout, flush=False,
+             **fmt_kwargs):
+    msg = msg.format(*fmt_args, **fmt_kwargs)
+    print(msg, end=end, file=file, flush=flush)
+
+
+def printfmterr(msg, *fmt_args,
+                end='\n', flush=False,
+                **fmt_kwargs):
+    printfmt(msg, *fmt_args,
+             end=end, file=sys.stderr, flush=flush,
+             **fmt_kwargs)
+
 def pprint(*objs,
            sep=' ', end='\n', file=sys.stdout, flush=False,
            indent=PP_DEFAULT, width=PP_DEFAULT, depth=PP_DEFAULT, compact=PP_DEFAULT
@@ -126,6 +140,8 @@ def pprintfmtstr(msg, *fmt_args,
 
 # ---------------- shorthands -----------------
 perr = printerr
+pf = printfmt
+pferr = printfmterr
 pp = pprint
 pps = pprintstr
 ppf = pprintfmt

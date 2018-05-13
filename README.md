@@ -103,12 +103,15 @@ Better alternatives for the `pprint` module in python standard lib.
 
 Convenient aliases:
 
-| original       | short  |
-|:--------------:|:------:|
-| `pprint`       | `pp`   |
-| `pprintstr`    | `pps`  |
-| `pprintfmt`    | `ppf`  |
-| `pprintfmtstr` | `ppfs` |
+| short  | original       |
+|:------:|:--------------:|
+| `pp`   | `pprint`       |
+| `pps`  | `pprintstr`    |
+| `ppf`  | `pprintfmt`    |
+| `ppfs` | `pprintfmtstr` |
+| `perr` | `printerr`     |
+| `pf`   | `printfmt`     |
+| `pferr`| `printfmterr`  |
 
 TODO: talk about global configs
 
