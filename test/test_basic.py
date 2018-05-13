@@ -35,6 +35,7 @@ def test_doc(logger):
     print(inspect.getdoc(logger.infobanner))
     print(inspect.getdoc(logger.errorbanner2))
     print(inspect.getdoc(logger.criticalbanner))
+    print(inspect.getdoc(logger.debugbannerfmt3))
 
 
 def test_banner(logger):
@@ -43,6 +44,15 @@ def test_banner(logger):
     logger.infobanner3(banner_len=16, banner_lines=2)
     logger.criticalbanner('my', 'critical', 'case', symbol='<*_*>',
                            banner_len=16, banner_lines=6)
+
+
+def test_bannerfmt(logger):
+    logger.infobannerfmt3('{} {:0>5d} {var}',
+                       'hello', 333, var=777,
+                       symbol='!', banner_len=16, banner_lines=3)
+    logger.errorbannerfmt('{3}&{0} {2}&{1}',
+                          'a', 'b', 'c', 'd',
+                          symbol='<*_*>', banner_len=16, banner_lines=6)
 
 
 def test_methods(logger):
