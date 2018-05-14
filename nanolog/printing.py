@@ -88,7 +88,13 @@ def printfmt(msg, *fmt_args,
 
 
 def printstr(*args, **kwargs):
+    """
+    Print to a string.
+    Does not include the trailing newline unless you specify end='\n' explicitly
+    """
     buf = StringIO()
+    if 'end' not in kwargs:
+        kwargs['end'] = ''
     print(*args, file=buf, **kwargs)
     return buf.getvalue()
 
