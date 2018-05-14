@@ -2,10 +2,9 @@ import os
 import sys
 import io
 import re
-import traceback
 import inspect
-from .printing import get_time_formatter, banner, bannerfmt
 import logging as _logging
+from .printing import *
 
 
 def _get_level_mapping():
@@ -121,100 +120,107 @@ def _parse_level_name(level_name):
 
 
 class _MethodGenerator(type):
-    def __new__(cls, cls_name, bases, method_dict):
+    def __init__(cls, _name, _bases, old_attrs):
+        # we use __init__ instead of __new__ because __new__ cannot get docstring
+        super().__init__(_name, _bases, old_attrs)
 
         def _generate(level_number):
-            # 'info', '5' or ''
+            # ('info', '5' or '')
             level_name = get_level_name(level_number)
             lname, lnum = _parse_level_name(level_name)
 
-            def _log(self, *msg, **kwargs):
-                """
-                logging at severity {} (level {})
+            def log(self, *msg,
+                    exc_info=None, stack_info=False, extra=None
+                    ):
+                return self.log(
+                    level_number, *msg,
+                    exc_info=exc_info, stack_info=stack_info, extra=extra
+                )
 
-                Args:
-                    *msg: as you would use print()
-                    **kwargs:
-                      - sep: separator symbol between *msg, the same as print()
-                      - exc_info, stack_info, extra: logging builtin keywords
-                """
-                return self.log(level_number, *msg, **kwargs)
-            _log.__doc__ = _log.__doc__.format(level_name, level_number)
+            def logfmt(self, msg, *fmt_args,
+                       exc_info=None, stack_info=False, extra=None,
+                       **fmt_kwargs):
+                return self.logfmt(
+                    level_number, msg, *fmt_args,
+                    exc_info=exc_info, stack_info=stack_info, extra=extra,
+                    **fmt_kwargs
+                )
 
-            def _logfmt(self, msg, *args, **kwargs):
-                """
-                logging with formatting string at severity {} (level {})
-
-                Args:
-                    msg: "{{}}"-style format string
-                    *args: positional args for the format string
-                    **kwargs:
-                      keyword args for the format string, except for
-                      "exc_info", "stack_info", "extra" logging keywords
-                """
-                return self.logfmt(level_number, msg, *args, **kwargs)
-            _logfmt.__doc__ = _logfmt.__doc__.format(level_name, level_number)
-
-            def _banner(self, *msg,
-                        sep=' ', symbol='=', banner_len=20, banner_lines=1):
-                """
-                Display a banner line or block with your message in the middle
-                logging at severity {} (level {})
-
-                Args:
-                  sep: separator between *msg, same as in print()
-                  symbol: banner symbol
-                  banner_len: length of the banner symbols (excluding message itself)
-                  banner_lines: number of the banner lines, ideally an odd number
-                """
+            def banner(self, *msg,
+                       sep=' ', symbol='=', banner_len=20, banner_lines=1,
+                       exc_info=None, stack_info=False, extra=None
+                       ):
                 return self.banner(
                     level_number, *msg,
                     sep=sep,
                     symbol=symbol,
                     banner_len=banner_len,
-                    banner_lines=banner_lines
+                    banner_lines=banner_lines,
+                    exc_info=exc_info, stack_info=stack_info, extra=extra,
                 )
-            _banner.__doc__ = _banner.__doc__.format(level_name, level_number)
 
-            def _bannerfmt(self, msg, *args,
-                          symbol='=', banner_len=20, banner_lines=1, **kwargs):
-                """
-                Display a banner line or block with your message in the middle.
-                logging at severity {} (level {})
-                Message is formatted in {{}}-style with *args and **kwargs
-                Other banner settings are the same as banner() method
-
-                Args:
-                  msg: "{{}}"-style format string
-                  *args: positional args for the format string
-                  **kwargs: keyword args for the format string, except for
-                      "exc_info", "stack_info", "extra" logging keywords
-                  symbol: banner symbol
-                  banner_len: length of the banner symbols (excluding message itself)
-                  banner_lines: number of the banner lines, ideally an odd number
-                """
+            def bannerfmt(self, msg, *fmt_args,
+                          symbol='=', banner_len=20, banner_lines=1,
+                          exc_info=None, stack_info=False, extra=None,
+                          **fmt_kwargs):
                 return self.bannerfmt(
-                    level_number, msg, *args,
+                    level_number, msg, *fmt_args,
                     symbol=symbol,
                     banner_len=banner_len,
                     banner_lines=banner_lines,
-                    **kwargs
+                    exc_info=exc_info, stack_info=stack_info, extra=extra,
+                    **fmt_kwargs
                 )
-            _bannerfmt.__doc__ = _bannerfmt.__doc__.format(level_name, level_number)
 
-            method_dict[lname+lnum] = _log
-            method_dict[lname+'fmt'+lnum] = _logfmt
-            method_dict[lname+'banner'+lnum] = _banner
-            method_dict[lname+'bannerfmt'+lnum] = _bannerfmt
+            def pp(self, *msgs, sep=' ',
+                   indent=PP_DEFAULT, width=PP_DEFAULT, depth=PP_DEFAULT, compact=PP_DEFAULT,
+                   exc_info=None, stack_info=False, extra=None
+                   ):
+                return self.pp(
+                    level_number, *msgs, sep=sep,
+                    indent=indent, width=width, depth=depth, compact=compact,
+                    exc_info=exc_info, stack_info=stack_info, extra=extra
+                )
+
+            def ppfmt(self, msg, *fmt_args,
+                   indent=PP_DEFAULT, width=PP_DEFAULT, depth=PP_DEFAULT, compact=PP_DEFAULT,
+                   exc_info=None, stack_info=False, extra=None,
+                   **fmt_kwargs):
+                return self.ppfmt(
+                    level_number, msg, *fmt_args,
+                    indent=indent, width=width, depth=depth, compact=compact,
+                    exc_info=exc_info, stack_info=stack_info, extra=extra,
+                    **fmt_kwargs
+                )
+
+            name_method_map = {
+                lname + lnum: log,
+                lname + 'fmt' + lnum: logfmt,
+                lname + 'banner' + lnum: banner,
+                lname + 'bannerfmt' + lnum: bannerfmt,
+                lname + 'pp' + lnum: pp,
+                lname + 'ppfmt' + lnum: ppfmt,
+            }
+            for name, method in name_method_map.items():
+                old_name = method.__name__  # name of method in Logger class
+                old_doc = inspect.getdoc(old_attrs[old_name])
+                # remove the doc that explains 'level:' parameter
+                old_doc = '\n'.join([line for line in old_doc.split('\n')
+                                     if not line.strip().startswith('level:')])
+                # "logging at severity INFO3 (level 23)" on top of docstring
+                extra_doc = ('Logging activated at severity {} (level {})\n'
+                             .format(level_name, level_number))
+                method.__doc__ = extra_doc + old_doc
+                method.__name__ = name
+                setattr(cls, name, method)
 
         # generate all methods from DEBUG, DEBUG2, DEBUG3, ..., CRITICAL9
         for level_number in range(10, 60):
             _generate(level_number)
 
-        for level, name in _LEVEL_MAPPING.items():
-            method_dict[name] = level
-        return super().__new__(cls, cls_name, bases, method_dict)
-        
+        for level_number, name in _LEVEL_MAPPING.items():
+            setattr(cls, name, level_number)
+
 
 class Logger(metaclass=_MethodGenerator):
     """
@@ -283,56 +289,37 @@ class Logger(metaclass=_MethodGenerator):
         level = get_level_number(level)
         return self.logger.isEnabledFor(level)
 
-    def _process_msg(self, *msg, **kwargs):
-        # if 'sep' is provided, we will use the custom separator instead
-        sep = kwargs.pop('sep', ' ')
-        # e.g. "{}, {}, {}" if sep = ", "
-        msg = sep.join([u'{}'] * len(msg)).format(*msg)
-        return msg, kwargs
-
-    def _process_msg_fmt(self, msg, *args, **kwargs):
-        fmt_kwargs = {}
-        for key, value in kwargs.copy().items():
-            if not key in ['exc_info', 'stack_info', 'extra']:
-                fmt_kwargs[key] = value
-                # must remove unsupported keyword for internal args
-                kwargs.pop(key)
-        msg = msg.format(*args, **fmt_kwargs)
-        return msg, kwargs
-
-    @staticmethod
-    def exception2str(exc):
-        buf = io.StringIO()
-        traceback.print_exception(
-            type(exc),
-            exc,
-            exc.__traceback__,
-            file=buf
-        )
-        buf = buf.getvalue().strip()
-        return '\n'.join(['ERROR> ' + line for line in buf.split('\n')])
-
-    def exception(self, msg, *args, exc, **kwargs):
+    def exception(self, *msg, exc, level=_logging.ERROR,
+                  stack_info=False, extra=None
+                  ):
         """
         Logs a message with level ERROR on this logger. 
         Exception info is always added to the logging message. 
 
         Args:
             exc: the exception value that extends BaseException
+            level: defaults to logging.ERROR
 
         Warning:
             Only Python3 supports exception.__traceback__
         """
         if self.is_enabled_for('ERROR'):
-            msg, kwargs = self._process_msg(msg, *args, **kwargs)
+            msg = printstr(*msg)
             msg += '\n'
-            if isinstance(exc, str):  # see LoggerplexClient
+            if isinstance(exc, str):
                 msg += exc
             else:
-                msg += self.exception2str(exc)
-            self.logger.error(msg, **kwargs)
+                excstr = exception2str(exc)
+                # excstr = '\n'.join(['ERROR> ' + line for line in excstr.split('\n')])
+                msg += excstr
+            self._log(
+                level, msg,
+                stack_info=stack_info, extra=extra
+            )
     
-    def log(self, level, *msg, **kwargs):
+    def log(self, level, *msg, sep=' ',
+            exc_info=None, stack_info=False, extra=None
+            ):
         """
         Log with user-defined level, e.g. INFO3, DEBUG5, WARNING7
 
@@ -344,28 +331,37 @@ class Logger(metaclass=_MethodGenerator):
               - exc_info, stack_info, extra: logging builtin keywords
         """
         if self.is_enabled_for(level):
-            msg, kwargs = self._process_msg(*msg, **kwargs)
-            # self.logger.log(level, msg, **kwargs)
-            self._log(level, msg, **kwargs)
+            msg = printstr(*msg, sep=sep)
+            self._log(
+                level, msg,
+                exc_info=exc_info, stack_info=stack_info, extra=extra
+            )
 
-    def logfmt(self, level, msg, *args, **kwargs):
+    def logfmt(self, level, msg, *fmt_args,
+               exc_info=None, stack_info=False, extra=None,
+               **fmt_kwargs):
         """
         Log with user-defined level, e.g. INFO3, DEBUG5, WARNING7
 
         Args:
             level: logging level name or number
             msg: "{}"-style format string
-            *args: positional args for the format string
-            **kwargs: keyword args for the format string, except for
+            *fmt_args: positional args for the format string
+            **fmt_kwargs: keyword args for the format string, except for
               "exc_info", "stack_info", "extra" logging keywords
         """
         if self.is_enabled_for(level):
-            msg, kwargs = self._process_msg_fmt(msg, *args, **kwargs)
+            msg = msg.format(*fmt_args, **fmt_kwargs)
             # self.logger.log(level, msg, **kwargs)
-            self._log(level, msg, **kwargs)
+            self._log(
+                level, msg,
+                exc_info=exc_info, stack_info=stack_info, extra=extra
+            )
 
     def banner(self, level, *msg,
-               sep=' ', symbol='=', banner_len=20, banner_lines=1):
+               sep=' ', symbol='=', banner_len=20, banner_lines=1,
+               exc_info=None, stack_info=False, extra=None
+               ):
         """
         Display a banner line or block with your message in the middle
 
@@ -387,10 +383,15 @@ class Logger(metaclass=_MethodGenerator):
                 *msg, sep=sep, symbol=symbol,
                 banner_len=banner_len, banner_lines=banner_lines
             )
-            self._log(level, msg)
+            self._log(
+                level, msg,
+                exc_info=exc_info, stack_info=stack_info, extra=extra
+            )
 
-    def bannerfmt(self, level, msg, *args,
-                  symbol='=', banner_len=20, banner_lines=1, **kwargs):
+    def bannerfmt(self, level, msg, *fmt_args,
+                  symbol='=', banner_len=20, banner_lines=1,
+                  exc_info=None, stack_info=False, extra=None,
+                  **fmt_kwargs):
         """
         Display a banner line or block with your message in the middle.
         Message is formatted in {}-style with *args and **kwargs
@@ -399,20 +400,69 @@ class Logger(metaclass=_MethodGenerator):
         Args:
           level: logging level name or number
           msg: "{}"-style format string
-          *args: positional args for the format string
-          **kwargs: keyword args for the format string, except for
+          *fmt_args: positional args for the format string
+          **fmt_kwargs: keyword args for the format string, except for
               "exc_info", "stack_info", "extra" logging keywords
           symbol: banner symbol
           banner_len: length of the banner symbols (excluding message itself)
           banner_lines: number of the banner lines, ideally an odd number
         """
         if self.is_enabled_for(level):
-            msg, kwargs = self._process_msg_fmt(msg, *args, **kwargs)
-            msg = banner(
-                msg, symbol=symbol,
-                banner_len=banner_len, banner_lines=banner_lines
+            msg = bannerfmt(
+                msg, *fmt_args,
+                symbol=symbol, banner_len=banner_len, banner_lines=banner_lines,
+                **fmt_kwargs
             )
-            self._log(level, msg, **kwargs)
+            self._log(
+                level, msg,
+                exc_info=exc_info, stack_info=stack_info, extra=extra
+            )
+
+    def pp(self, level, *msgs, sep=' ',
+           indent=PP_DEFAULT, width=PP_DEFAULT, depth=PP_DEFAULT, compact=PP_DEFAULT,
+           exc_info=None, stack_info=False, extra=None
+           ):
+        """
+        Prettyprint objects
+
+        Args:
+          level: logging level name or number
+          *msgs: objects like you would pass to print()
+        """
+        if self.is_enabled_for(level):
+            msg = pprintstr(
+                *msgs, sep=sep,
+                indent=indent, width=width, depth=depth, compact=compact
+            )
+            self._log(
+                level, msg,
+                exc_info=exc_info, stack_info=stack_info, extra=extra
+            )
+
+    def ppfmt(self, level, msg, *fmt_args,
+              indent=PP_DEFAULT, width=PP_DEFAULT, depth=PP_DEFAULT, compact=PP_DEFAULT,
+              exc_info=None, stack_info=False, extra=None,
+              **fmt_kwargs):
+        """
+        Prettyprint message with formatting
+
+        Args:
+          level: logging level name or number
+          msg: "{{}}"-style format string
+          *fmt_args: positional args for the format string
+          **fmt_kwargs: keyword args for the format string, except for
+              "exc_info", "stack_info", "extra" logging keywords
+        """
+        if self.is_enabled_for(level):
+            msg = pprintfmtstr(
+                msg, *fmt_args,
+                indent=indent, width=width, depth=depth, compact=compact,
+                **fmt_kwargs
+            )
+            self._log(
+                level, msg,
+                exc_info=exc_info, stack_info=stack_info, extra=extra
+            )
 
     def remove_all_handlers(self):
         for handle in self.logger.handlers:
@@ -487,11 +537,13 @@ class Logger(metaclass=_MethodGenerator):
                       format=None,
                       time_format=None,
                       show_level=False,
-                      stream=None,
-                      reset_handlers=False):
+                      stream='stdout'):
         """
-        Main factory method to create a new logger or re-configure an existing
-        logger.
+        Main factory method to create a new logger. If you want to reconfigure
+        an existing Logger, you should use the following instead:
+            nanolog.Logger(my_existing_logger).configure(...)
+        otherwise the existing logger's configs will be overriden.
+
         If you just want to wrap an existing Logger without re-configuring,
         please use the normal constructor: `nanolog.Logger(existing_logger)`
 
@@ -516,7 +568,7 @@ class Logger(metaclass=_MethodGenerator):
             time_format=time_format,
             show_level=show_level,
             stream=stream,
-            reset_handlers=reset_handlers
+            reset_handlers=True
         )
     
     def _get_formatter(self, format, time_format, show_level):
@@ -662,7 +714,9 @@ class Logger(metaclass=_MethodGenerator):
             break
         return rv
 
-    def _log(self, level, msg, args=tuple(), exc_info=None, extra=None, stack_info=False):
+    def _log(self, level, msg, args=tuple(),
+             exc_info=None, stack_info=False, extra=None
+             ):
         # Low-level logging routine which creates a LogRecord and then calls
         # all the handlers of this logger to handle the record.
         sinfo = None

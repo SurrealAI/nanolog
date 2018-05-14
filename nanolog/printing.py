@@ -11,8 +11,11 @@ import datetime
 import time
 import pprint as _pprint_builtin
 import prettyprinter as _pprint_thirdparty
+import numbers
 from collections import abc
 from io import StringIO
+import traceback
+from .constants import PP_DEFAULT
 
 
 _PP_BACKEND = _pprint_thirdparty
@@ -23,8 +26,6 @@ _PP_CONFIG = {
     'depth': None,
     'compact': False
 }
-
-PP_DEFAULT = '__default__'  # use default config value
 
 
 def set_pprint_backend(backend):
@@ -58,7 +59,7 @@ def _pformat(obj, indent, width, depth, compact, *, _leave_number):
     if isinstance(obj, str):
         return obj
     # don't convert number to string if we pass it to str.format()
-    if isinstance(obj, (int, float)) and _leave_number:
+    if isinstance(obj, numbers.Number) and _leave_number:
         return obj
     kwargs = dict(indent=indent, width=width, depth=depth, compact=compact)
     for key, value in kwargs.items():
@@ -78,12 +79,19 @@ def printfmt(msg, *fmt_args,
     print(msg, end=end, file=file, flush=flush)
 
 
+def printstr(*args, **kwargs):
+    buf = StringIO()
+    print(*args, file=buf, **kwargs)
+    return buf.getvalue()
+
+
 def printfmterr(msg, *fmt_args,
                 end='\n', flush=False,
                 **fmt_kwargs):
     printfmt(msg, *fmt_args,
              end=end, file=sys.stderr, flush=flush,
              **fmt_kwargs)
+
 
 def pprint(*objs,
            sep=' ', end='\n', file=sys.stdout, flush=False,
@@ -138,14 +146,16 @@ def pprintfmtstr(msg, *fmt_args,
     fmt_kwargs = {key: pf(value) for key, value in fmt_kwargs.items()}
     return msg.format(*fmt_args, **fmt_kwargs)
 
+
 # ---------------- shorthands -----------------
+pstr = printstr
 perr = printerr
 pf = printfmt
 pferr = printfmterr
 pp = pprint
-pps = pprintstr
+ppstr = pprintstr
 ppf = pprintfmt
-ppfs = pprintfmtstr
+ppfstr = pprintfmtstr
 
 
 # ---------------- banners -----------------
@@ -246,6 +256,8 @@ def get_time_formatter(formatter):
     Returns:
       time format string with %
     """
+    if formatter is None:
+        return None
     return (
         formatter
             .replace('MDY', '%m-%d-%y')
@@ -283,6 +295,7 @@ def seconds2str(seconds):
     return datetime.timedelta(seconds=seconds)
 
 
+# ---------------- data struct to str -----------------
 def dict2str(D,
              sep='=',
              item_sep=', ',
@@ -331,6 +344,21 @@ def list2str(L,
     item_format = u'{{:{}}}'.format(item_format)
     itemstr = sep.join(map(lambda s: item_format.format(s), L))
     return enclose[0] + itemstr + enclose[1]
+
+
+def exception2str(exc):
+    """
+    Returns
+        string of the traceback message
+    """
+    buf = StringIO()
+    traceback.print_exception(
+        type(exc),
+        exc,
+        exc.__traceback__,
+        file=buf
+    )
+    return buf.getvalue().strip()
 
 
 # ---------------- print redirections -----------------

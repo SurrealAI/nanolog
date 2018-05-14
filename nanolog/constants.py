@@ -1,3 +1,5 @@
+PP_DEFAULT = '_default_'  # use default prettyprint configs
+
 DEBUG = 10
 DEBUG1 = 11
 DEBUG2 = 12
