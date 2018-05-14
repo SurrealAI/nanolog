@@ -10,8 +10,10 @@ import sys
 import datetime
 import time
 import pprint as _pprint_builtin
+
 import prettyprinter as _pprint_thirdparty
 import numbers
+import inspect
 from collections import abc
 from io import StringIO
 import traceback
@@ -360,6 +362,9 @@ def exception2str(exc):
     )
     return buf.getvalue().strip()
 
+
+def signature2str(func):
+    return str(inspect.signature(func))
 
 # ---------------- print redirections -----------------
 class PrintRedirection:

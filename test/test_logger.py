@@ -30,18 +30,18 @@ def logger():
 
 
 def test_doc(logger):
-    print(inspect.getdoc(logger.debug5))
-    print(inspect.getdoc(logger.debugfmt5))
+    print(inspect.getdoc(logger.debug))
+    print(inspect.getdoc(logger.warningfmt5))
     print(inspect.getdoc(logger.infobanner))
     print(inspect.getdoc(logger.errorbanner2))
-    print(inspect.getdoc(logger.criticalbanner))
-    print(inspect.getdoc(logger.debugbannerfmt3))
+    print(inspect.getdoc(logger.criticalpp))
+    print(inspect.getdoc(logger.debugppfmt3))
 
 
 def test_log(logger):
     # print([_method for _method in dir(logger) if not _method.startswith('__')])
     logger.info7('my', 3, 'world', 1/16.)  # just like print
-    logger.warning9('yo {:.3f} info7', 1/17)
+    logger.warning9('yo {:.3f} info7', 1/17)  # should NOT format!
     logger.debug3('SHOULD NOT SHOW!! logger level >= debug5')
 
     logger.error('this', 'an', 'error')

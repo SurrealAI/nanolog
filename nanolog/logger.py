@@ -124,95 +124,43 @@ class _MethodGenerator(type):
         # we use __init__ instead of __new__ because __new__ cannot get docstring
         super().__init__(_name, _bases, old_attrs)
 
+        def _create_new_method(old_method):
+            # avoid late binding
+            def _new_method(self, *_args, **_kwargs):
+                # fill in the first positional arg
+                return old_method(self, level_number, *_args, **_kwargs)
+            return _new_method
+
         def _generate(level_number):
-            # ('info', '5' or '')
-            level_name = get_level_name(level_number)
+            # generate methods that fill the first `level` parameter
+            # e.g. logger.infobanner3(..) is equivalent to
+            # logger.banner(level=23, ...)
+            level_name = get_level_name(level_number)  # ('info', '5' or '')
             lname, lnum = _parse_level_name(level_name)
-
-            def log(self, *msg,
-                    exc_info=None, stack_info=False, extra=None
-                    ):
-                return self.log(
-                    level_number, *msg,
-                    exc_info=exc_info, stack_info=stack_info, extra=extra
-                )
-
-            def logfmt(self, msg, *fmt_args,
-                       exc_info=None, stack_info=False, extra=None,
-                       **fmt_kwargs):
-                return self.logfmt(
-                    level_number, msg, *fmt_args,
-                    exc_info=exc_info, stack_info=stack_info, extra=extra,
-                    **fmt_kwargs
-                )
-
-            def banner(self, *msg,
-                       sep=' ', symbol='=', banner_len=20, banner_lines=1,
-                       exc_info=None, stack_info=False, extra=None
-                       ):
-                return self.banner(
-                    level_number, *msg,
-                    sep=sep,
-                    symbol=symbol,
-                    banner_len=banner_len,
-                    banner_lines=banner_lines,
-                    exc_info=exc_info, stack_info=stack_info, extra=extra,
-                )
-
-            def bannerfmt(self, msg, *fmt_args,
-                          symbol='=', banner_len=20, banner_lines=1,
-                          exc_info=None, stack_info=False, extra=None,
-                          **fmt_kwargs):
-                return self.bannerfmt(
-                    level_number, msg, *fmt_args,
-                    symbol=symbol,
-                    banner_len=banner_len,
-                    banner_lines=banner_lines,
-                    exc_info=exc_info, stack_info=stack_info, extra=extra,
-                    **fmt_kwargs
-                )
-
-            def pp(self, *msgs, sep=' ',
-                   indent=PP_DEFAULT, width=PP_DEFAULT, depth=PP_DEFAULT, compact=PP_DEFAULT,
-                   exc_info=None, stack_info=False, extra=None
-                   ):
-                return self.pp(
-                    level_number, *msgs, sep=sep,
-                    indent=indent, width=width, depth=depth, compact=compact,
-                    exc_info=exc_info, stack_info=stack_info, extra=extra
-                )
-
-            def ppfmt(self, msg, *fmt_args,
-                   indent=PP_DEFAULT, width=PP_DEFAULT, depth=PP_DEFAULT, compact=PP_DEFAULT,
-                   exc_info=None, stack_info=False, extra=None,
-                   **fmt_kwargs):
-                return self.ppfmt(
-                    level_number, msg, *fmt_args,
-                    indent=indent, width=width, depth=depth, compact=compact,
-                    exc_info=exc_info, stack_info=stack_info, extra=extra,
-                    **fmt_kwargs
-                )
-
+            
             name_method_map = {
-                lname + lnum: log,
-                lname + 'fmt' + lnum: logfmt,
-                lname + 'banner' + lnum: banner,
-                lname + 'bannerfmt' + lnum: bannerfmt,
-                lname + 'pp' + lnum: pp,
-                lname + 'ppfmt' + lnum: ppfmt,
+                lname + lnum: 'log',
+                lname + 'fmt' + lnum: 'logfmt',
+                lname + 'banner' + lnum: 'banner',
+                lname + 'bannerfmt' + lnum: 'bannerfmt',
+                lname + 'pp' + lnum: 'pp',
+                lname + 'ppfmt' + lnum: 'ppfmt',
             }
-            for name, method in name_method_map.items():
-                old_name = method.__name__  # name of method in Logger class
-                old_doc = inspect.getdoc(old_attrs[old_name])
+            for new_name, old_name in name_method_map.items():
+                old_method = old_attrs[old_name]
+                new_method = _create_new_method(old_method)
+                old_doc = inspect.getdoc(old_method)
                 # remove the doc that explains 'level:' parameter
                 old_doc = '\n'.join([line for line in old_doc.split('\n')
                                      if not line.strip().startswith('level:')])
                 # "logging at severity INFO3 (level 23)" on top of docstring
                 extra_doc = ('Logging activated at severity {} (level {})\n'
                              .format(level_name, level_number))
-                method.__doc__ = extra_doc + old_doc
-                method.__name__ = name
-                setattr(cls, name, method)
+                signature_doc = new_name + signature2str(old_method) + '\n'
+                signature_doc = signature_doc.replace('self, level, ', '')
+                new_method.__doc__ = signature_doc + extra_doc + old_doc
+                new_method.__name__ = new_name
+                setattr(cls, new_name, new_method)
 
         # generate all methods from DEBUG, DEBUG2, DEBUG3, ..., CRITICAL9
         for level_number in range(10, 60):
