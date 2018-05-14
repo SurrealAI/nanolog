@@ -124,7 +124,7 @@ class _MethodGenerator(type):
         # we use __init__ instead of __new__ because __new__ cannot get docstring
         super().__init__(_name, _bases, old_attrs)
 
-        def _create_new_method(old_method):
+        def _create_new_method(old_method, level_number):
             # avoid late binding
             def _new_method(self, *_args, **_kwargs):
                 # fill in the first positional arg
@@ -148,7 +148,7 @@ class _MethodGenerator(type):
             }
             for new_name, old_name in name_method_map.items():
                 old_method = old_attrs[old_name]
-                new_method = _create_new_method(old_method)
+                new_method = _create_new_method(old_method, level_number)
                 old_doc = inspect.getdoc(old_method)
                 # remove the doc that explains 'level:' parameter
                 old_doc = '\n'.join([line for line in old_doc.split('\n')
