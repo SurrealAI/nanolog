@@ -366,6 +366,7 @@ def exception2str(exc):
 def signature2str(func):
     return str(inspect.signature(func))
 
+
 # ---------------- print redirections -----------------
 class PrintRedirection:
     """

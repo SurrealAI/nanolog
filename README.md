@@ -78,6 +78,13 @@ displays:
 <*_*><*_*><*_*><*_*><*_*>
 ```
 
+Prettyprint support (uses the thirdparty lib `prettyprinter`)
+
+```python
+logger.infopp7(...)
+logger.warningppfmt('my warning {:.3f} format {:.2f} string', 1/7., 1/9.)
+```
+
 ## Logger config
 
 TODO
@@ -101,17 +108,18 @@ Better alternatives for the `pprint` module in python standard lib.
 
 - `pprintfmtstr`: return string instead of printing to IO stream
 
-Convenient aliases:
+Convenient aliases (`pp` stands for `prettyprint`; a single `p` means normal print)
 
 | short  | original       |
 |:------:|:--------------:|
-| `pp`   | `pprint`       |
-| `pps`  | `pprintstr`    |
-| `ppf`  | `pprintfmt`    |
-| `ppfs` | `pprintfmtstr` |
-| `perr` | `printerr`     |
-| `pf`   | `printfmt`     |
-| `pferr`| `printfmterr`  |
+| `pf`     | `printfmt`     |
+| `pferr`  | `printfmterr`  |
+| `pstr`   | `printstr`     |
+| `perr`   | `printerr`     |
+| `pp`     | `pprint`       |
+| `ppstr`  | `pprintstr`    |
+| `ppf`    | `pprintfmt`    |
+| `ppfstr` | `pprintfmtstr` |
 
 TODO: talk about global configs
 

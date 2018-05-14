@@ -8,11 +8,20 @@ builtin ``logging``.
 
 The library also ships with many printing utilities. Python 3 only.
 
-Installation:
+Installation
+------------
+
+From stable package on PyPI
 
 .. code:: bash
 
     pip install nanolog
+
+From bleeding edge master branch
+
+.. code:: bash
+
+    pip install git+git://github.com/SurrealAI/nanolog.git
 
 nanolog.Logger
 ==============
@@ -75,6 +84,13 @@ displays:
     <*_*><*_*><*_*><*_*><*_*>
     <*_*><*_*><*_*><*_*><*_*>
 
+Prettyprint support (uses the thirdparty lib ``prettyprinter``)
+
+.. code:: python
+
+    logger.infopp7(...)
+    logger.warningppfmt('my warning {:.3f} format {:.2f} string', 1/7., 1/9.)
+
 Logger config
 -------------
 
@@ -101,19 +117,28 @@ Better alternatives for the ``pprint`` module in python standard lib.
 
 -  ``pprintfmtstr``: return string instead of printing to IO stream
 
-Convenient aliases:
+Convenient aliases (``pp`` stands for ``prettyprint``; a single ``p``
+means normal print)
 
-+--------------------+------------+
-| original           | short      |
-+====================+============+
-| ``pprint``         | ``pp``     |
-+--------------------+------------+
-| ``pprintstr``      | ``pps``    |
-+--------------------+------------+
-| ``pprintfmt``      | ``ppf``    |
-+--------------------+------------+
-| ``pprintfmtstr``   | ``ppfs``   |
-+--------------------+------------+
++--------------+--------------------+
+| short        | original           |
++==============+====================+
+| ``pf``       | ``printfmt``       |
++--------------+--------------------+
+| ``pferr``    | ``printfmterr``    |
++--------------+--------------------+
+| ``pstr``     | ``printstr``       |
++--------------+--------------------+
+| ``perr``     | ``printerr``       |
++--------------+--------------------+
+| ``pp``       | ``pprint``         |
++--------------+--------------------+
+| ``ppstr``    | ``pprintstr``      |
++--------------+--------------------+
+| ``ppf``      | ``pprintfmt``      |
++--------------+--------------------+
+| ``ppfstr``   | ``pprintfmtstr``   |
++--------------+--------------------+
 
 TODO: talk about global configs
 
