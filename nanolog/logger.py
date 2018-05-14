@@ -2,6 +2,7 @@ import os
 import sys
 import io
 import re
+import contextlib
 import inspect
 import logging as _logging
 from .printing import *
@@ -24,6 +25,7 @@ def _get_level_mapping():
     for level, name in names.items():
         # add to standard lib
         setattr(_logging, name, level)
+        _logging.addLevelName(level, name)
     return names
 
 
@@ -416,6 +418,29 @@ class Logger(metaclass=_MethodGenerator):
         for handle in self.logger.handlers:
             self.logger.removeHandler(handle)
 
+    def set_level(self, level):
+        """
+        Args:
+            level: level number or name
+        """
+        assert isinstance(level, (str, int)), 'level name or number'
+        if isinstance(level, str):  # "INFO", "WARNING"
+            level = get_level_number(level)
+        self.logger.setLevel(level)
+
+    def get_level(self):
+        return self.logger.getEffectiveLevel()
+
+    @contextlib.contextmanager
+    def temp_level_scope(self, new_level):
+        """
+        Temporary sets the level of the logger
+        """
+        old_level = self.get_level()
+        self.set_level(new_level)
+        yield self
+        self.set_level(old_level)
+
     def configure(self,
                   level=None, 
                   file_name=None,
@@ -468,10 +493,7 @@ class Logger(metaclass=_MethodGenerator):
         if reset_handlers:
             self.remove_all_handlers()
         if level:
-            if isinstance(level, str):  # "INFO", "WARNING"
-                level = level.upper()
-                level = getattr(self, level)
-            self.logger.setLevel(level)
+            self.set_level(level)
         self.add_stream_handler(stream, format, time_format, show_level)
         self.add_file_handler(file_name, file_mode,
                               format, time_format, show_level)

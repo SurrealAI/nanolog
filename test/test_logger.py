@@ -101,3 +101,15 @@ def test_ppfmt(logger):
     logger.criticalppfmt('{myd2} myerr {myd2}', myd2=d2,
                          width=35, compact=True)
 
+
+def test_set_level(logger):
+    with logger.temp_level_scope(logger.ERROR5):
+        logger.error4('my', 20, 'hello', 30, 'world')
+    logger.error4('my', 20, 'hello', 30, 'world')
+
+
+def test_throwaway():
+    import logging
+    log = logging.getLogger('abc.def')
+    log.info('asdf {} {}', 3, 5)
+
