@@ -92,8 +92,12 @@ def test_ppfmt(logger):
     d1 = {'a': {'a': {'a': {'a': {'a': {'b': 10}}}}}}
     d2 = {'A': {'A': {'A': {'A': {'A': {'B': 10}}}}}}
     logger.debugppfmt2('SHOULD', 'NOT', 'SHOW', d1)
+    logger.warningppfmt5('compact D2->{2}, num={1:.3f}, D1->{0}',
+                         d1, 1/7, d2,
+                         width=10, depth=3, compact=True)
     logger.warningppfmt5('D2->{2}, num={1:.3f}, D1->{0}',
                          d1, 1/7, d2,
                          width=10, depth=3)
     logger.criticalppfmt('{myd2} myerr {myd2}', myd2=d2,
                          width=35, compact=True)
+

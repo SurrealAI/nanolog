@@ -10,7 +10,6 @@ import sys
 import datetime
 import time
 import pprint as _pprint_builtin
-
 import prettyprinter as _pprint_thirdparty
 import numbers
 import inspect
@@ -57,7 +56,11 @@ def set_pprint_config(indent=PP_DEFAULT,
             _PP_CONFIG[key] = value
 
 
-def _pformat(obj, indent, width, depth, compact, *, _leave_number):
+def _pp_obj_str(obj, indent, width, depth, compact, *, _leave_number):
+    """
+    pprint a single obj, helper to pprint and pprintfmt
+    If compact is True, always use the builtin backend cause thirdparty doesn't support
+    """
     if isinstance(obj, str):
         return obj
     # don't convert number to string if we pass it to str.format()
@@ -67,7 +70,10 @@ def _pformat(obj, indent, width, depth, compact, *, _leave_number):
     for key, value in kwargs.items():
         if value == PP_DEFAULT:
             kwargs[key] = _PP_CONFIG[key]
-    return _PP_BACKEND.pformat(obj, **kwargs)
+    backend = _PP_BACKEND
+    if kwargs['compact']:
+        backend = _pprint_builtin
+    return backend.pformat(obj, **kwargs)
 
 
 def printerr(*args, **kwargs):
@@ -112,7 +118,7 @@ def pprint(*objs,
 def pprintstr(*objs, sep=' ',
               indent=PP_DEFAULT, width=PP_DEFAULT, depth=PP_DEFAULT, compact=PP_DEFAULT
               ):
-    pf = lambda obj: _pformat(
+    pf = lambda obj: _pp_obj_str(
         obj, indent, width, depth, compact, _leave_number=False)
     return sep.join(map(pf, objs))
 
@@ -142,9 +148,9 @@ def pprintfmtstr(msg, *fmt_args,
         all positional and keyword args to str.format will be converted to string
         first, which means float/int will not be
     """
-    pf = lambda obj: _pformat(
+    pf = lambda obj: _pp_obj_str(
         obj, indent, width, depth, compact, _leave_number=True)
-    fmt_args = map(pf, fmt_args)
+    fmt_args = list(map(pf, fmt_args))
     fmt_kwargs = {key: pf(value) for key, value in fmt_kwargs.items()}
     return msg.format(*fmt_args, **fmt_kwargs)
 
