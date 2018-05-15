@@ -9,27 +9,39 @@ from .printing import *
 
 
 def _get_level_mapping():
-    names = {
+    level2name = {}
+    for i in range(1, 10):
+        level2name[_logging.DEBUG + i] = 'DEBUG'+str(i)
+        level2name[_logging.INFO + i] = 'INFO'+str(i)
+        level2name[_logging.WARNING + i] = 'WARN'+str(i)
+        level2name[_logging.ERROR + i] = 'ERROR'+str(i)
+        level2name[_logging.CRITICAL + i] = 'CRITICAL'+str(i)
+    level2name.update({
+        0: 'LOG_ALL',  # log everything possible
+        5: 'TRACE',  # more fine-grained than debug
         _logging.DEBUG: 'DEBUG',
         _logging.INFO: 'INFO',
+        _logging.INFO + 5: 'NOTICE',  # also denoted ass "INFO5"
         _logging.WARNING: 'WARNING',
         _logging.ERROR: 'ERROR',
         _logging.CRITICAL: 'CRITICAL',
-    }
-    for i in range(1, 10):
-        names[_logging.DEBUG + i] = 'DEBUG'+str(i)
-        names[_logging.INFO + i] = 'INFO'+str(i)
-        names[_logging.WARNING + i] = 'WARNING'+str(i)
-        names[_logging.ERROR + i] = 'ERROR'+str(i)
-        names[_logging.CRITICAL + i] = 'CRITICAL'+str(i)
-    for level, name in names.items():
+        100: 'LOG_OFF',  # turn off logging
+    })
+    for level, name in level2name.items():
         # add to standard lib
         setattr(_logging, name, level)
         _logging.addLevelName(level, name)
-    return names
+    # reverse mapping
+    name2level = {v: k for k, v in level2name.items()}
+    # plus more special aliases for existing levels
+    name2level['WARN'] = _logging.WARNING  # alias
+    name2level['NOTICE'] = _logging.INFO + 5
+    name2level['INFO5'] = _logging.INFO + 5
+
+    return level2name, name2level
 
 
-_LEVEL_MAPPING = _get_level_mapping()
+_LEVEL2NAME, _NAME2LEVEL = _get_level_mapping()
 
 
 def get_level_name(level_number):
@@ -43,7 +55,7 @@ def get_level_name(level_number):
     if isinstance(level_number, str):
         return level_number
     assert isinstance(level_number, int)
-    return _LEVEL_MAPPING.get(level_number, 'LEVEL{}'.format(level_number))
+    return _LEVEL2NAME.get(level_number, 'LEVEL{}'.format(level_number))
 
 
 def get_level_number(level_name):
@@ -58,8 +70,8 @@ def get_level_number(level_name):
     if isinstance(level_name, int):
         return level_name
     level_name = level_name.upper()
-    if hasattr(_logging, level_name):
-        return getattr(_logging, level_name)
+    if level_name in _NAME2LEVEL:
+        return _NAME2LEVEL[level_name]
     else:
         try:
             if not level_name.startswith('LEVEL'):
@@ -115,7 +127,7 @@ def _expand_arg(arg):
 def _parse_level_name(level_name):
     "_MethodGenerator helper"
     level_name = level_name.lower()
-    m = re.match('^([a-z]+)([0-9]*)$', level_name)
+    m = re.match('^([a-z_]+)([0-9]*)$', level_name)
     assert m, 'INTERNAL ERROR'
     # 'info', '5' or ''
     return m.group(1), m.group(2)
@@ -133,11 +145,10 @@ class _MethodGenerator(type):
                 return old_method(self, level_number, *_args, **_kwargs)
             return _new_method
 
-        def _generate(level_number):
+        def _generate(level_name, level_number):
             # generate methods that fill the first `level` parameter
             # e.g. logger.infobanner3(..) is equivalent to
             # logger.banner(level=23, ...)
-            level_name = get_level_name(level_number)  # ('info', '5' or '')
             lname, lnum = _parse_level_name(level_name)
             
             name_method_map = {
@@ -165,11 +176,10 @@ class _MethodGenerator(type):
                 setattr(cls, new_name, new_method)
 
         # generate all methods from DEBUG, DEBUG2, DEBUG3, ..., CRITICAL9
-        for level_number in range(10, 60):
-            _generate(level_number)
-
-        for level_number, name in _LEVEL_MAPPING.items():
-            setattr(cls, name, level_number)
+        # might have aliases, i.e. same level nubmer maps to different names
+        for level_name, level_number in _NAME2LEVEL.items():
+            _generate(level_name, level_number)
+            setattr(cls, level_name, level_number)
 
 
 class Logger(metaclass=_MethodGenerator):

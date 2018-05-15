@@ -8,11 +8,11 @@ def test_level_name():
     assert logging.getLevelName(20) == 'INFO'
     assert logging.getLevelName(23) == 'INFO3'
     assert logging.getLevelName(15) == 'DEBUG5'
-    assert logging.getLevelName(37) == 'WARNING7'
+    assert logging.getLevelName(37) == 'WARN7'
     assert logging.getLevelName(61) == 'LEVEL61'
     assert nl.get_level_number('INFO') == 20
     assert nl.get_level_number('INFO3') == 23
-    assert nl.get_level_number('WARNING7') == 37
+    assert nl.get_level_number('WARN7') == 37
     assert nl.get_level_number('DEBUG5') == 15
     assert nl.get_level_number('LEVEL17') == 17
 
@@ -31,7 +31,7 @@ def logger():
 
 def test_doc(logger):
     print(inspect.getdoc(logger.debug))
-    print(inspect.getdoc(logger.warningfmt5))
+    print(inspect.getdoc(logger.warnfmt5))
     print(inspect.getdoc(logger.infobanner))
     print(inspect.getdoc(logger.errorbanner2))
     print(inspect.getdoc(logger.criticalpp))
@@ -41,7 +41,7 @@ def test_doc(logger):
 def test_log(logger):
     # print([_method for _method in dir(logger) if not _method.startswith('__')])
     logger.info7('my', 3, 'world', 1/16.)  # just like print
-    logger.warning9('yo {:.3f} info7', 1/17)  # should NOT format!
+    logger.warn9('yo {:.3f} info7', 1/17)  # should NOT format!
     logger.debug3('SHOULD NOT SHOW!! logger level >= debug5')
 
     logger.error('this', 'an', 'error')
@@ -49,13 +49,13 @@ def test_log(logger):
         1/0
     except Exception as e:
         logger.exception('myexc', 'yo', exc=e)
-    logger.banner(logger.WARNING3, 'yoyoyoo', symbol='%')
+    logger.banner(logger.WARN4, 'yoyoyoo', symbol='%')
     logger.critical('yo crit {:.2e} {}', 3**0.5, {'x':3})
 
 
 def test_logfmt(logger):
-    logger.infofmt7('yo {:.3f} info7', 1/17)
-    logger.criticalfmt('yo crit {:.2e} {}', 3**0.5, {'x':3})
+    logger.noticefmt('yo {:.3f} info7', 1/17)
+    logger.criticalfmt2('yo crit {:.2e} {}', 3**0.5, {'x':3})
     logger.warningfmt('{}, we are {:.3f} miles from {planet}',
                       'Houston', 17/7, planet='Mars')  # just like str.format
     logger.errorfmt('Client format {:0>5d} - {:?<9}', 21, 'asdiojfoigj')
@@ -63,8 +63,8 @@ def test_logfmt(logger):
 
 
 def test_banner(logger):
-    logger.infobanner3('my', 3, 'world', symbol='!',
-                       banner_len=16, banner_lines=3)
+    logger.noticebanner('my', 3, 'world', symbol='!',
+                        banner_len=16, banner_lines=3)
     logger.infobanner3(banner_len=16, banner_lines=2)
     logger.criticalbanner('my', 'critical', 'case', symbol='<*_*>',
                           banner_len=16, banner_lines=6)
@@ -92,10 +92,10 @@ def test_ppfmt(logger):
     d1 = {'a': {'a': {'a': {'a': {'a': {'b': 10}}}}}}
     d2 = {'A': {'A': {'A': {'A': {'A': {'B': 10}}}}}}
     logger.debugppfmt2('SHOULD', 'NOT', 'SHOW', d1)
-    logger.warningppfmt5('compact D2->{2}, num={1:.3f}, D1->{0}',
+    logger.warnppfmt5('compact D2->{2}, num={1:.3f}, D1->{0}',
                          d1, 1/7, d2,
                          width=10, depth=3, compact=True)
-    logger.warningppfmt5('D2->{2}, num={1:.3f}, D1->{0}',
+    logger.warnppfmt5('D2->{2}, num={1:.3f}, D1->{0}',
                          d1, 1/7, d2,
                          width=10, depth=3)
     logger.criticalppfmt('{myd2} myerr {myd2}', myd2=d2,
@@ -104,12 +104,12 @@ def test_ppfmt(logger):
 
 def test_set_level(logger):
     with logger.temp_level_scope(logger.ERROR5):
-        logger.error4('my', 20, 'hello', 30, 'world')
+        logger.error4('SHOULD', 'NOT', 'DISPLAY')
     logger.error4('my', 20, 'hello', 30, 'world')
+    with logger.temp_level_scope(logger.LOG_ALL):
+        logger.trace('finest', 'grain', 'msgs')
+    logger.trace('SHOULD', 'NOT', 'DISPLAY')
+    with logger.temp_level_scope(logger.LOG_OFF):
+        logger.critical9('LOG', 'TURNED', 'OFF')
 
-
-def test_throwaway():
-    import logging
-    log = logging.getLogger('abc.def')
-    log.info('asdf {} {}', 3, 5)
 
