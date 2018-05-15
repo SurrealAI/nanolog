@@ -552,7 +552,7 @@ class Logger(metaclass=_MethodGenerator):
         )
     
     def _get_formatter(self, format, time_format, show_level):
-        levelname = '{levelname}> ' if show_level else ''
+        levelname = '[{levelname}]> ' if show_level else ''
         if format is None:
             if time_format is not None:
                 fmt = '{asctime} '
