@@ -9,7 +9,7 @@ def read(fname):
 
 setup(
     name='nanolog',
-    version='0.1.2.post1',
+    version='0.1.3',
     author='Jim Fan',
     url='http://github.com/SurrealAI/nanolog',
     description='python logging on steroids, lightweight and convenient',

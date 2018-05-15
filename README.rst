@@ -26,6 +26,19 @@ From bleeding edge master branch
 nanolog.Logger
 ==============
 
+Logging levels, from least severe to most:
+
+-  ``LOG_ALL``: log everything
+-  ``TRACE``: fine-grained debugging messages
+-  ``DEBUG``: normal debugging
+-  ``INFO``: messages you usually don't want to see
+-  ``NOTICE`` (i.e. ``INFO5``): non-error messages you usually want to
+   see
+-  ``WARNING``: exceptional circumstances that might not be errors
+-  ``ERROR``: errors that occur, but are anticipated and handled
+-  ``CRITICAL``: fatal errors that lead to termination
+-  ``LOG_OFF``: turn off all logging
+
 .. code:: python
 
     import nanolog as nl
@@ -39,8 +52,9 @@ nanolog.Logger
     logger.info('my', 3, 'world', 1/16.)  # just like print
     # >>> my 3 world 0.0625
 
-    logger.warningfmt('{}, we are {:.3f} miles from {planet}',
-                      'Houston', 17/7, planet='Mars')  # just like str.format
+    # nanolog use 'warn' instead of 'warning'
+    logger.warnfmt('{}, we are {:.3f} miles from {planet}',
+                   'Houston', 17/7, planet='Mars')  # just like str.format
     # >>> Houston, we are 2.429 miles from Mars
 
 Use a trailing number to indicate level, the larger the higher priority
@@ -89,7 +103,7 @@ Prettyprint support (uses the thirdparty lib ``prettyprinter``)
 .. code:: python
 
     logger.infopp7(...)
-    logger.warningppfmt('my warning {:.3f} format {:.2f} string', 1/7., 1/9.)
+    logger.warnppfmt('my warning {:.3f} format {:.2f} string', 1/7., 1/9.)
 
 Logger config
 -------------
